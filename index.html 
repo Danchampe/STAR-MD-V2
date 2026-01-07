@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Boomify – Web Player</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .app {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background: #000;
+      padding: 20px;
+      border-right: 1px solid #282828;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .logo {
+      font-weight: 700;
+      font-size: 24px;
+      color: #1db954;
+    }
+
+    .nav-section h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #b3b3b3;
+      margin-bottom: 8px;
+    }
+
+    .nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .nav-links li {
+      cursor: pointer;
+      color: #b3b3b3;
+    }
+
+    .nav-links li:hover {
+      color: #fff;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      background: radial-gradient(circle at top left, #333 0, #121212 45%, #000 100%);
+      padding: 16px 24px 96px; /* leave room for player */
+      overflow-y: auto;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .top-buttons button {
+      background: #181818;
+      border: none;
+      color: #fff;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    .top-buttons button:hover {
+      background: #282828;
+    }
+
+    .user-pill {
+      background: #000;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 13px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: #181818;
+      padding: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .card:hover {
+      background: #282828;
+      transform: translateY(-2px);
+    }
+
+    .card img {
+      width: 100%;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: #b3b3b3;
+    }
+
+    /* Player bar */
+    .player {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 80px;
+      background: #181818;
+      border-top: 1px solid #282828;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+    }
+
+    .player-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .player-cover {
+      width: 56px;
+      height: 56px;
+      border-radius: 4px;
+      background: #333;
+      flex-shrink: 0;
+    }
+
+    .player-meta {
+      font-size: 13px;
+    }
+
+    .player-meta .title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .player-meta .artist {
+      color: #b3b3b3;
+      font-size: 12px;
+    }
+
+    .player-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      max-width: 480px;
+      margin: 0 16px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 6px;
+    }
+
+    .control-btn {
+      background: none;
+      border: none;
+      color: #b3b3b3;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .control-btn.main {
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #fff;
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      font-size: 11px;
+      color: #b3b3b3;
+    }
+
+    .progress {
+      flex: 1;
+      height: 4px;
+      background: #404040;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: #1db954;
+    }
+
+    .player-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 140px;
+      justify-content: flex-end;
+      font-size: 12px;
+    }
+
+    .volume-bar {
+      width: 90px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+      .player-meta {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">Boomify</div>
+
+      <div class="nav-section">
+        <h4>Menu</h4>
+        <ul class="nav-links">
+          <li>Home</li>
+          <li>Search</li>
+          <li>Your Library</li>
+        </ul>
+      </div>
+
+      <div class="nav-section">
+        <h4>Playlists</h4>
+        <ul class="nav-links">
+          <li>Daily Mix</li>
+          <li>Focus Flow</li>
+          <li>Top Hits</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <header class="top-bar">
+        <div class="top-buttons">
+          <button>&lt; Back</button>
+          <button>Forward &gt;</button>
+        </div>
+        <div class="user-pill">Guest</div>
+      </header>
+
+      <section>
+        <h2 class="section-title">Good evening</h2>
+        <div class="card-grid">
+          <article class="card">
+            <img src="https://via.placeholder.com/300x300/1db954/ffffff?text=Boomify" alt="Playlist cover" />
+            <div class="card-title">Focus Flow</div>
+            <div class="card-subtitle">Beats to keep you in the zone</div>
+          </article>
+
+          <article class="card">
+            <img src="https://via.placeholder.com/300x300/333333/ffffff?text=Chill" alt="Playlist cover" />
+            <div class="card-title">Night Vibes</div>
+            <div class="card-subtitle">Smooth tracks for late sessions</div>
+          </article>
+
+          <article class="card">
+            <img src="https://via.placeholder.com/300x300/111111/ffffff?text=Hits" alt="Playlist cover" />
+            <div class="card-title">Top Boomify</div>
+            <div class="card-subtitle">Trending on Boomify this week</div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Player -->
+  <footer class="player">
+    <div class="player-left">
+      <div class="player-cover"></div>
+      <div class="player-meta">
+        <div class="title" id="track-title">Sample Track</div>
+        <div class="artist" id="track-artist">Boomify Artist</div>
+      </div>
+    </div>
+
+    <div class="player-center">
+      <div class="controls">
+        <button class="control-btn">&#8634;</button>
+        <button class="control-btn">&#9664;&#9664;</button>
+        <button class="control-btn main" id="play-pause">▶</button>
+        <button class="control-btn">&#9654;&#9654;</button>
+        <button class="control-btn">&#x1f500;</button>
+      </div>
+      <div class="progress-row">
+        <span id="current-time">0:00</span>
+        <div class="progress">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <span id="total-time">0:00</span>
+      </div>
+    </div>
+
+    <div class="player-right">
+      <span>🔊</span>
+      <input class="volume-bar" type="range" min="0" max="1" step="0.01" id="volume" />
+    </div>
+
+    <!-- Hidden audio element -->
+    <audio id="audio">
+      <source src="https://www.kozco.com/tech/piano2-CoolEdit.mp3" type="audio/mpeg" />
+      Your browser does not support the audio element.
+    </audio>
+  </footer>
+
+  <script>
+    const audio = document.getElementById("audio");
+    const playBtn = document.getElementById("play-pause");
+    const progressFill = document.getElementById("progress-fill");
+    const currentTimeEl = document.getElementById("current-time");
+    const totalTimeEl = document.getElementById("total-time");
+    const volumeSlider = document.getElementById("volume");
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60) || 0;
+      const s = Math.floor(sec % 60) || 0;
+      return m + ":" + (s < 10 ? "0" + s : s);
+    }
+
+    audio.addEventListener("loadedmetadata", () => {
+      totalTimeEl.textContent = formatTime(audio.duration);
+    });
+
+    audio.addEventListener("timeupdate", () => {
+      const progress = (audio.currentTime / audio.duration) * 100 || 0;
+      progressFill.style.width = progress + "%";
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+    });
+
+    playBtn.addEventListener("click", () => {
+      if (audio.paused) {
+        audio.play();
+        playBtn.textContent = "⏸";
+      } else {
+        audio.pause();
+        playBtn.textContent = "▶";
+      }
+    });
+
+    volumeSlider.addEventListener("input", () => {
+      audio.volume = volumeSlider.value;
+    });
+
+    // initial volume
+    audio.volume = 0.7;
+    volumeSlider.value = 0.7;
+  </script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+MediaFlow/
+├─ assets/
+├─ src/
+│  ├─ api/
+│  │   └─ musicApi.js
+│  ├─ components/
+│  │   ├─ Player.js
+│  │   ├─ MiniPlayer.js
+│  │   ├─ TrackCard.js
+│  │   └─ SearchBar.js
+│  ├─ navigation/
+│  │   └─ index.js
+│  ├─ screens/
+│  │   ├─ Home.js
+│  │   ├─ Search.js
+│  │   ├─ Library.js
+│  │   ├─ PlayerScreen.js
+│  │   └─ Playlist.js
+│  ├─ store/
+│  │   ├─ index.js
+│  │   └─ playerSlice.js
+│  └─ utils/
+│      ├─ audio.js
+│      └─ helpers.js
+├─ App.js
+├─ app.json
+├─ tailwind.config.js
+├─ package.json
+└─ README.md
+{
+  "name": "MediaFlow",
+  "version": "1.0.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "expo": "~48.0.0",
+    "expo-av": "~13.0.0",
+    "expo-status-bar": "~1.4.0",
+    "react-native": "0.71.8",
+    "react": "18.2.0",
+    "react-redux": "^8.1.2",
+    "@reduxjs/toolkit": "^1.9.5",
+    "@react-navigation/native": "^6.1.6",
+    "@react-navigation/native-stack": "^6.9.12",
+    "react-native-vector-icons": "^9.2.0",
+    "tailwind-rn": "^3.2.2",
+    "@react-native-async-storage/async-storage": "^1.17.11"
+  }
+}
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { Provider } from 'react-redux';
+import { TailwindProvider } from 'tailwind-rn';
+import utilities from './tailwind.json';
+import AppNavigator from './src/navigation';
+import store from './src/store';
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <TailwindProvider utilities={utilities}>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </TailwindProvider>
+    </Provider>
+  );
+}
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Home from '../screens/Home';
+import Search from '../screens/Search';
+import Library from '../screens/Library';
+import PlayerScreen from '../screens/PlayerScreen';
+import Playlist from '../screens/Playlist';
+
+const Stack = createNativeStackNavigator();
+
+export default function AppNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Home" component={Home} />
+      <Stack.Screen name="Search" component={Search} />
+      <Stack.Screen name="Library" component={Library} />
+      <Stack.Screen name="Player" component={PlayerScreen} />
+      <Stack.Screen name="Playlist" component={Playlist} />
+    </Stack.Navigator>
+  );
+}
+import { configureStore } from '@reduxjs/toolkit';
+import playerReducer from './playerSlice';
+
+export default configureStore({
+  reducer: {
+    player: playerReducer
+  }
+});
+import { createSlice } from '@reduxjs/toolkit';
+
+const playerSlice = createSlice({
+  name: 'player',
+  initialState: {
+    queue: [],
+    current: null,
+    status: 'stopped'
+  },
+  reducers: {
+    setQueue: (state, action) => { state.queue = action.payload },
+    playTrack: (state, action) => { state.current = action.payload },
+    setStatus: (state, action) => { state.status = action.payload }
+  }
+});
+
+export const { setQueue, playTrack, setStatus } = playerSlice.actions;
+export default playerSlice.reducer;
+import { Audio } from 'expo-av';
+
+let sound = null;
+
+export async function playMusic(uri) {
+  try {
+    if (sound) await sound.unloadAsync();
+    sound = new Audio.Sound();
+    await sound.loadAsync({ uri });
+    await sound.playAsync();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function stopMusic() {
+  if (sound) await sound.stopAsync();
+}
+import React from 'react';
+import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { playTrack } from '../store/playerSlice';
+import TrackCard from '../components/TrackCard';
+
+const dummyTracks = [
+  { id: '1', title: 'Song A', artist: 'Artist X', uri: '...' },
+  { id: '2', title: 'Song B', artist: 'Artist Y', uri: '...' }
+];
+
+export default function Home() {
+  const dispatch = useDispatch();
+
+  return (
+    <View className="flex-1 p-4">
+      <Text className="text-xl font-bold mb-4">Recommended</Text>
+      <FlatList
+        data={dummyTracks}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => dispatch(playTrack(item))}>
+            <TrackCard track={item} />
+          </TouchableOpacity>
+        )}
+      />
+    </View>
+  );
+}
+import React from 'react';
+import { View, Text, Button } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { stopMusic, playMusic } from '../utils/audio';
+import { setStatus } from '../store/playerSlice';
+
+export default function Player() {
+  const { current, status } = useSelector(s => s.player);
+  const dispatch = useDispatch();
+
+  if (!current) return null;
+
+  return (
+    <View className="p-4 bg-gray-900">
+      <Text className="text-white text-lg">{current.title}</Text>
+      <Text className="text-gray-300">{current.artist}</Text>
+      <Button title="Play" onPress={() => { playMusic(current.uri); dispatch(setStatus('playing')) }} />
+      <Button title="Stop" onPress={() => { stopMusic(); dispatch(setStatus('stopped')) }} />
+    </View>
+  );
+}
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { useSelector } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
+
+export default function MiniPlayer() {
+  const { current } = useSelector(s => s.player);
+  const nav = useNavigation();
+
+  if (!current) return null;
+
+  return (
+    <TouchableOpacity onPress={() => nav.navigate("Player")}>
+      <View className="bg-black p-2">
+        <Text className="text-white">{current.title} — {current.artist}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+export async function searchMusic(q) {
+  // TODO: connect to Spotify / YT Music / your server
+  return [];
+}
+
+export async function getPlaylist(id) {
+  return {};
+}
